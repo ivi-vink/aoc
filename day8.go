@@ -155,7 +155,7 @@ func main() {
 	vis := q.countVisibleTrees(hmap, xlen, ylen)
 	fmt.Println("Part 1:", vis)
 
-	// part 2... meh not sure how to optimize this further? Each tree can have local best scenic score
+	// part 2
 	runningScore := 0
 	for x := 1; x < xlen-1; x++ {
 		for y := 1; y < ylen-1; y++ {
