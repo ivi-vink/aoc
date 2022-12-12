@@ -33,7 +33,7 @@ func (h *heightmap) distance(s *square, o *square) int {
 	return 1
 }
 
-func (h *heightmap) neighbors(s *square) []*square {
+func (h *heightmap) neighbors(s *square, pred func(n, s *square) bool) []*square {
 	potential := []*square{}
 	if s.x > 0 {
 		potential = append(potential, h.squares[s.y][s.x-1])
@@ -50,14 +50,18 @@ func (h *heightmap) neighbors(s *square) []*square {
 
 	ns := []*square{}
 	for _, n := range potential {
-		if (n.height - s.height) <= 1 {
+		if pred(n, s) {
 			ns = append(ns, n)
 		}
 	}
 	return ns
 }
 
-func (hm *heightmap) shortestPath(start *square, pred func(sqr *square) bool) ([]*square, bool) {
+func (hm *heightmap) shortestPath(
+	start *square,
+	pred func(sqr *square) bool,
+	neighborPred func(n, s *square) bool,
+) ([]*square, bool) {
 	infinity := len(hm.squares) * len(hm.squares[0])
 	hm.work = make([]*square, len(hm.squares)*len(hm.squares[0]))
 	for i := range hm.squares {
@@ -88,7 +92,7 @@ func (hm *heightmap) shortestPath(start *square, pred func(sqr *square) bool) ([
 		if pred(sqr) {
 			break
 		}
-		for _, n := range hm.neighbors(sqr) {
+		for _, n := range hm.neighbors(sqr, neighborPred) {
 			d := hm.distances[sqr.i] + hm.distance(sqr, n)
 			if d < hm.distances[n.i] {
 				hm.distances[n.i] = d
@@ -121,7 +125,6 @@ func main() {
 		pathlog:   make(map[int]*square),
 		distances: d,
 	}
-	otherStarts := []*square{}
 	var start, end *square
 	for s.Scan() {
 		squareRow := make([]*square, len(s.Bytes()))
@@ -136,9 +139,6 @@ func main() {
 				end = s
 			} else {
 				s := &square{x, y, x + (y * len(s.Bytes())), byte2height(c)}
-				if c == 'a' {
-					otherStarts = append(otherStarts, s)
-				}
 				squareRow[x] = s
 			}
 		}
@@ -148,21 +148,20 @@ func main() {
 
 	p1path, ok := hm.shortestPath(start, func(sqr *square) bool {
 		return sqr == end
+	}, func(n, s *square) bool {
+		return (n.height - s.height) <= 1
 	})
+
 	if ok {
-		fmt.Println("Part 1:", hm.distances[end.i])
+		fmt.Println("Part 1:", len(p1path))
 	}
 
-	shortest := len(p1path)
-	for _, strt := range otherStarts {
-		path, ok := hm.shortestPath(strt, func(sqr *square) bool {
-			return sqr == end || hm.distances[sqr.i] >= len(p1path)
-		})
-		if ok {
-			if len(path) < shortest {
-				shortest = len(path)
-			}
-		}
+	p2path, ok := hm.shortestPath(end, func(sqr *square) bool {
+		return sqr.height == byte2height('a')
+	}, func(n, s *square) bool {
+		return (s.height - n.height) <= 1
+	})
+	if ok {
+		fmt.Println("Part 2:", len(p2path))
 	}
-	fmt.Println("Part 2:", shortest)
 }
