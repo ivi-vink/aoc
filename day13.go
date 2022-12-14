@@ -184,5 +184,11 @@ func main() {
 	}
 	fmt.Println("Part 1:", runningSum)
 
+	// pick key last element
+	// sort all elements according to key
+	// swap key into place
+	// divide array
+	// repeat
+
 	// fmt.Println("Part 2:", decoderKey)
 }
