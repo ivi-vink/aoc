@@ -28,40 +28,66 @@ func intOrList(v t) int {
 	}
 }
 
-type continuation struct {
-	i    int
-	ok   bool
-	a, b []t
-}
+type compcode int
 
-func comparePackets(p1, p2 *packet, comp func(a, b int) bool) (int, bool) {
-	var cp func(i int, ok bool, a, b []t) (int, bool)
+const (
+	cont       compcode = -1
+	rightOrder compcode = 0
+	wrongOrder compcode = 1
+)
 
-	var ctn []continuation
-	cp = func(i int, ok bool, a, b []t) (int, bool) {
-		if !ok {
-			return i, false
-		}
-		if al, bl := i >= len(a), i >= len(b); al || bl {
-			if bl && !al {
-				return i, false
+func comparePackets(p1, p2 *packet, comp func(a, b int) compcode) (int, compcode) {
+	var cp func(i int, ok compcode, a, b []t) (int, compcode)
+
+	cp = func(i int, ok compcode, a, b []t) (int, compcode) {
+		fmt.Println("Recurse", i, a, b, ok)
+		if al, bl := i >= len(a), i >= len(b); al {
+			if bl && al {
+				fmt.Println("Both terminated at the same time", a, b, cont)
+				return i, cont
 			}
-			return i, ok
-		}
-		at, bt := intOrList(a), intOrList(b)
-		if at == 1 && bt == 1 {
-		} else if at == 1 && bt == 0 {
-		} else if at == 0 && bt == 1 {
-		} else if at == 0 && bt == 0 {
-		} else {
+			if bl && !al {
+				fmt.Println("Right terminated first", a, b, false)
+				return i, wrongOrder
+			}
+			fmt.Println("Left terminated first", a, b, true)
+			return i, rightOrder
 		}
 
-		return i, true
+		if al, bl := i >= len(a), i >= len(b); bl {
+			if bl && al {
+				fmt.Println("Both terminated at the same time", a, b, cont)
+				return i, cont
+			}
+			if bl && !al {
+				fmt.Println("Right terminated first", a, b, false)
+				return i, wrongOrder
+			}
+			fmt.Println("Left terminated first", a, b, true)
+			return i, rightOrder
+		}
+
+		at, bt := intOrList(a[i]), intOrList(b[i])
+		code := cont
+		if at == 1 && bt == 1 {
+			_, code = cp(0, ok, a[i].([]t), b[i].([]t))
+		} else if at == 1 && bt == 0 {
+			_, code = cp(0, ok, a[i].([]t), []t{b[i]})
+		} else if at == 0 && bt == 1 {
+			_, code = cp(0, ok, []t{a[i]}, b[i].([]t))
+		} else if at == 0 && bt == 0 {
+			code = comp(a[i].(int), b[i].(int))
+		} else {
+			log.Fatal("Unexpected input types")
+		}
+
+		if code != cont {
+			return i, code
+		}
+
+		return cp((i + 1), code, a, b)
 	}
-	ctn = append(ctn, continuation{0, true, p1.data, p2.data})
-	for len(ctn) > 0 {
-	}
-	return cp(0, true, p1.data, p2.data)
+	return cp(0, -1, p1.data, p2.data)
 }
 
 func parsePacket(b []byte) *packet {
@@ -69,14 +95,15 @@ func parsePacket(b []byte) *packet {
 
 	parseList = func(list []t, b []byte) []t {
 		for i := 0; i < len(b); i++ {
-			switch {
-			case b[0] == '[' && b[1] == ']':
+			if b[i] == '[' && b[i+1] == ']' {
 				list = append(list, []t{})
-				return list
-			case b[i] == '[':
+			} else if b[i] == '[' {
 				j := 1
 				subchildren := 1
 				for subchildren > 0 {
+					if i+j >= len(b) {
+						break
+					}
 					if b[i+j] == '[' {
 						subchildren += 1
 					}
@@ -87,7 +114,7 @@ func parsePacket(b []byte) *packet {
 				}
 				list = append(list, parseList([]t{}, b[i+1:i+j-1]))
 				i = i + j
-			default:
+			} else {
 				j := 0
 				for ; i+j < len(b); j++ {
 					stop := false
@@ -107,7 +134,7 @@ func parsePacket(b []byte) *packet {
 				}
 				num, err := strconv.Atoi(s)
 				if err != nil {
-					log.Fatal("This is no a number!", i, j, s)
+					continue
 				}
 				list = append(list, num)
 				i = i + j
@@ -132,8 +159,30 @@ func main() {
 			packets = append(packets, parsePacket(s.Bytes()))
 		}
 	}
+	runningSum := 0
 	for i := 0; i < len(packets); i += 2 {
+		fmt.Println()
 		fmt.Println(packets[i])
-		fmt.Println(comparePackets(packets[i], packets[i+1], func(a, b int) bool { return a < b }))
+		fmt.Println(packets[i+1])
+		_, code := comparePackets(packets[i], packets[i+1], func(a, b int) compcode {
+			if a == b {
+				fmt.Println("comp: continue", a, b)
+				return cont
+			}
+			if a < b {
+				fmt.Println("comp: rightOrder", a, b)
+				return rightOrder
+			} else {
+				fmt.Println("comp: wrongOrder", a, b)
+				return wrongOrder
+			}
+		})
+		if code == rightOrder {
+			fmt.Println(code, i/2+1)
+			runningSum += (i / 2) + 1
+		}
 	}
+	fmt.Println("Part 1:", runningSum)
+
+	// fmt.Println("Part 2:", decoderKey)
 }
