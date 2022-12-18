@@ -37,54 +37,53 @@ const (
 )
 
 // not very idiomatich i think
-func newComparePackets(comp func(a, b int) compcode) func (p1, p2 *packet) (int, compcode) {
-    return func (p1, p2 *packet) (int, compcode) {
-        var cp func(i int, ok compcode, a, b []t) (int, compcode)
+func newComparePackets(comp func(a, b int) compcode) func(p1, p2 *packet) (int, compcode) {
+	return func(p1, p2 *packet) (int, compcode) {
+		var cp func(i int, ok compcode, a, b []t) (int, compcode)
 
-        cp = func(i int, ok compcode, a, b []t) (int, compcode) {
-            if al, bl := i >= len(a), i >= len(b); al {
-                if bl && al {
-                    return i, cont
-                }
-                if bl && !al {
-                    return i, wrongOrder
-                }
-                return i, rightOrder
-            }
+		cp = func(i int, ok compcode, a, b []t) (int, compcode) {
+			if al, bl := i >= len(a), i >= len(b); al {
+				if bl && al {
+					return i, cont
+				}
+				if bl && !al {
+					return i, wrongOrder
+				}
+				return i, rightOrder
+			}
 
-            if al, bl := i >= len(a), i >= len(b); bl {
-                if bl && al {
-                    return i, cont
-                }
-                if bl && !al {
-                    return i, wrongOrder
-                }
-                return i, rightOrder
-            }
+			if al, bl := i >= len(a), i >= len(b); bl {
+				if bl && al {
+					return i, cont
+				}
+				if bl && !al {
+					return i, wrongOrder
+				}
+				return i, rightOrder
+			}
 
-            at, bt := intOrList(a[i]), intOrList(b[i])
-            code := cont
-            if at == 1 && bt == 1 {
-                _, code = cp(0, ok, a[i].([]t), b[i].([]t))
-            } else if at == 1 && bt == 0 {
-                _, code = cp(0, ok, a[i].([]t), []t{b[i]})
-            } else if at == 0 && bt == 1 {
-                _, code = cp(0, ok, []t{a[i]}, b[i].([]t))
-            } else if at == 0 && bt == 0 {
-                code = comp(a[i].(int), b[i].(int))
-            } else {
-                log.Fatal("Unexpected input types")
-            }
+			at, bt := intOrList(a[i]), intOrList(b[i])
+			code := cont
+			if at == 1 && bt == 1 {
+				_, code = cp(0, ok, a[i].([]t), b[i].([]t))
+			} else if at == 1 && bt == 0 {
+				_, code = cp(0, ok, a[i].([]t), []t{b[i]})
+			} else if at == 0 && bt == 1 {
+				_, code = cp(0, ok, []t{a[i]}, b[i].([]t))
+			} else if at == 0 && bt == 0 {
+				code = comp(a[i].(int), b[i].(int))
+			} else {
+				log.Fatal("Unexpected input types")
+			}
 
-            if code != cont {
-                return i, code
-            }
+			if code != cont {
+				return i, code
+			}
 
-            return cp((i + 1), code, a, b)
-        }
-        return cp(0, -1, p1.data, p2.data)
-    }
-
+			return cp((i + 1), code, a, b)
+		}
+		return cp(0, -1, p1.data, p2.data)
+	}
 }
 
 func parsePacket(b []byte) *packet {
@@ -144,29 +143,30 @@ func parsePacket(b []byte) *packet {
 }
 
 func swap(packets []*packet, key, i int) []*packet {
-    packets[i], packets[key] = packets[key], packets[i]
-    return packets
+	packets[i], packets[key] = packets[key], packets[i]
+	return packets
 }
 
-func quicksort(packets []*packet, comp func (p1, p2 *packet) (int, compcode)) []*packet {
-    var qs func () 
-    qs := func () {
-        key := len(packets) - 1
-        for i:=key-1; i>0; i-- {
-            _, code := comp(packets[key], packets[i])
-            if code == rightOrder {
-                packets = swap(packets, key, i)
-            }
-        }
-        if key <= 0 || key + 1 > len(packets) {
-            return packets
-        } else {
-            left, right := packets[:key], packets[key+1:]
-            quicksort()
-            quicksort()
-        }
-    }
-    return packets
+func quicksort(packets []*packet, comp func(p1, p2 *packet) (int, compcode)) []*packet {
+	var qs func(p []*packet)
+	qs = func(p []*packet) {
+		key := len(p) - 1
+		for i := key - 1; i >= 0; i-- {
+			_, code := comp(p[key], p[i])
+			if code == rightOrder {
+				p = swap(p, key, i)
+			}
+		}
+		if key <= 0 || key+1 > len(p) {
+			return
+		} else {
+			left, right := p[:key], p[key+1:]
+			qs(left)
+			qs(right)
+		}
+	}
+	qs(packets)
+	return packets
 }
 
 func main() {
@@ -183,16 +183,16 @@ func main() {
 		}
 	}
 	runningSum := 0
-    comparePackets := newComparePackets(func(a, b int) compcode {
-			if a == b {
-				return cont
-			}
-			if a < b {
-				return rightOrder
-			} else {
-				return wrongOrder
-			}
-		})
+	comparePackets := newComparePackets(func(a, b int) compcode {
+		if a == b {
+			return cont
+		}
+		if a < b {
+			return rightOrder
+		} else {
+			return wrongOrder
+		}
+	})
 	for i := 0; i < len(packets); i += 2 {
 		_, code := comparePackets(packets[i], packets[i+1])
 		if code == rightOrder {
@@ -206,6 +206,14 @@ func main() {
 	// swap key into place
 	// divide array
 	// repeat
+	marker2, marker6 := &packet{[]t{[]t{2}}}, &packet{[]t{[]t{6}}}
+	packets = append(packets, marker2, marker6)
 
-	fmt.Println("Part 2:", quicksort(packets, comparePackets))
+	decoderKey := 1
+	for i, p := range quicksort(packets, comparePackets) {
+		if p == marker2 || p == marker6 {
+			decoderKey *= i + 1
+		}
+	}
+	fmt.Println("Part 2:", decoderKey)
 }
