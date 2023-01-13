@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 )
 
@@ -148,6 +149,7 @@ func swap(packets []*packet, key, i int) []*packet {
 }
 
 func quicksort(packets []*packet, comp func(p1, p2 *packet) (int, compcode)) []*packet {
+	sort.Slice
 	var qs func(p []*packet)
 	qs = func(p []*packet) {
 		key := len(p) - 1

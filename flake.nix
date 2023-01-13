@@ -15,6 +15,7 @@
         nativeBuildInputs = [pkgs.bashInteractive];
         buildInputs = with pkgs; [
           go_1_19
+          gotests
           gofumpt
           gotools
           (pkgs.buildGoModule rec {
