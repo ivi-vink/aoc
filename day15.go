@@ -1,3 +1,4 @@
+// Part 2 could be further optimised by taking into account which sensors touch at manhattan distance + 1
 package main
 
 import (
@@ -10,8 +11,6 @@ import (
 	"strconv"
 )
 
-type empty struct{}
-
 type Coord struct {
 	x, y int
 }
@@ -23,41 +22,55 @@ type Sensor struct {
 
 type visiter []byte
 
-func (v visiter) getNeighbors(c Coord, w, h int, shiftx, shifty int) []byte {
-	up := (c.x + shiftx + (c.y+shifty-1)*w) % len(v)
-	down := (c.x + shiftx + (c.y+shifty+1)*w) % len(v)
-	left := (c.x + shiftx - 1 + (c.y+shifty)*w) % len(v)
-	right := (c.x + shiftx + 1 + (c.y+shifty)*w) % len(v)
-
-	b := make([]byte, 4)
-	for i, n := range []int{up, down, left, right} {
-		if n < 0 {
-			b[i] = 2
-		} else {
-			b[i] = v[n]
-		}
-	}
-	return b
-}
-
-func (v visiter) visit(c Coord, w, h int, shiftx, shifty int) {
-	v[(c.x+shiftx+(c.y+shifty)*w)%len(v)] |= 1
-}
-
-func (v visiter) beacon(c Coord, w, h int, shiftx, shifty int) {
-	v[(c.x+shiftx+(c.y+shifty)*w)%len(v)] |= 2
-}
-
 func manhattanDistance(c1, c2 Coord) int {
 	return int(math.Abs(float64(c2.x-c1.x)) + math.Abs(float64(c2.y-c1.y)))
 }
 
-type rowVisiter []map[Coord]bool
-
-func (v rowVisiter) visitRow(c Coord, beacon bool, shifty int) {
-	if _, ok := v[c.y+shifty][c]; !ok {
-		v[c.y+shifty][c] = beacon
+func points(s Sensor) map[Coord]struct{} {
+	d := manhattanDistance(s.loc, s.closestBeacon)
+	points := []Coord{{s.loc.x + d + 1, s.loc.y}}
+	circ := make(map[Coord]struct{})
+	for len(points) > 0 {
+		p := points[0]
+		points = points[1:]
+		for _, a := range []Coord{
+			{p.x - 1, p.y + 1},
+			{p.x + 1, p.y - 1},
+			{p.x - 1, p.y - 1},
+			{p.x + 1, p.y + 1},
+		} {
+			if manhattanDistance(s.loc, a) == d+1 {
+				_, ok := circ[a]
+				if !ok {
+					circ[a] = struct{}{}
+					points = append(points, a)
+				}
+			}
+		}
 	}
+	return circ
+}
+
+func findAtRow(distances []int, sensors []Sensor, row, begin, end int) (int, []Coord) {
+	covered := 0
+	notCovered := []Coord{}
+	for i := begin; i < end; i++ {
+		coord := Coord{i, row}
+		cov := false
+		for i, c := range sensors {
+			if d := manhattanDistance(c.loc, coord); d <= distances[i] {
+				cov = true
+				if coord != c.loc && coord != c.closestBeacon {
+					covered++
+					break
+				}
+			}
+		}
+		if !cov {
+			notCovered = append(notCovered, coord)
+		}
+	}
+	return covered, notCovered
 }
 
 func main() {
@@ -72,7 +85,6 @@ func main() {
 	)
 
 	sensors := []Sensor(nil)
-	allcoords := []Coord(nil)
 	for bs.Scan() {
 		line := bs.Text()
 		coordstrings := inputPattern.FindAllStringSubmatch(line, 3)[0][1:]
@@ -85,75 +97,78 @@ func main() {
 			coords[i] = n
 		}
 		c := []Coord{{coords[0], coords[1]}, {coords[2], coords[3]}}
-		allcoords = append(allcoords, c...)
 		sensors = append(sensors, Sensor{c[0], c[1]})
 	}
 
 	xmax, xmin := 0, 0
 	ymax, ymin := 0, 0
-	for _, c := range allcoords {
-		if c.x > xmax {
-			xmax = c.x
+	for _, c := range sensors {
+		if c.loc.x > xmax {
+			xmax = c.loc.x
 		}
-		if c.x < xmin {
-			xmin = c.x
+		if c.loc.x+c.closestBeacon.x > xmax {
+			xmax = c.loc.x + c.closestBeacon.x
 		}
-		if c.y > ymax {
-			ymax = c.y
+		if c.loc.x < xmin {
+			xmin = c.loc.x
 		}
-		if c.y < ymin {
-			ymin = c.y
+		if c.loc.x-c.closestBeacon.x < xmin {
+			xmin = c.loc.x - c.closestBeacon.x
+		}
+		if c.loc.y > ymax {
+			ymax = c.loc.y
+		}
+		if c.loc.y+c.closestBeacon.y > ymax {
+			ymax = c.loc.y + c.closestBeacon.y
+		}
+		if c.loc.y < ymin {
+			ymin = c.loc.y
+		}
+		if c.loc.y-c.closestBeacon.y < ymin {
+			ymin = c.loc.y - c.closestBeacon.y
 		}
 	}
-	padding := 0
-	xmax, xmin = xmax+padding, xmin-padding
-	ymax, ymin = ymax+padding, ymin-padding
 
-	width, height := xmax-xmin, ymax-ymin
-	shiftx, shifty := -xmin, -ymin
-	visit := make(rowVisiter, height+1)
-	for i := range visit {
-		visit[i] = make(map[Coord]bool)
+	distances := []int(nil)
+	for _, c := range sensors {
+		distances = append(distances, manhattanDistance(c.loc, c.closestBeacon))
 	}
-	fmt.Println(len(visit), width, height, shiftx, shifty)
+	fmt.Println(xmin, xmax, ymin, ymax)
 
+	row := 2_000_000
+	count, _ := findAtRow(distances, sensors, row, xmin, xmax)
+	fmt.Println(count)
+
+	lower, upper := 0, 4_000_000
+	target := Coord{}
+	t := false
 	for _, s := range sensors {
-		sensorVisit := make(map[Coord]empty)
-		toVisit := []Coord{s.loc}
-		dist := manhattanDistance(s.loc, s.closestBeacon)
-		visit.visitRow(s.closestBeacon, true, shifty)
-		fmt.Println("new sensor", s.loc, s.closestBeacon, dist)
-		for len(toVisit) > 0 {
-			visiting := toVisit[0]
-			toVisit = toVisit[1:]
-
-			for _, c := range []Coord{
-				{visiting.x, visiting.y + 1},
-				{visiting.x, visiting.y - 1},
-				{visiting.x - 1, visiting.y},
-				{visiting.x + 1, visiting.y},
-			} {
-				if _, ok := sensorVisit[c]; !ok && manhattanDistance(s.loc, c) <= dist {
-					if c.y+shifty >= len(visit) {
-						visit = append(visit, make(map[Coord]bool))
+		p := points(s)
+		for c := range p {
+			notCovered := true
+			if c.x < lower || c.x > upper {
+				continue
+			}
+			if c.y < lower || c.y > upper {
+				continue
+			}
+			for _, other := range sensors {
+				if other != s {
+					d := manhattanDistance(other.loc, other.closestBeacon)
+					if d >= manhattanDistance(other.loc, c) {
+						notCovered = false
 					}
-					if c.y+shifty < len(visit) {
-						visit = append([]map[Coord]bool{make(map[Coord]bool)}, visit...)
-						shifty++
-					}
-					visit.visitRow(c, false, shifty)
-					sensorVisit[c] = empty{}
-					toVisit = append(toVisit, c)
 				}
 			}
+			if notCovered {
+				target = c
+				t = true
+				break
+			}
+		}
+		if t {
+			break
 		}
 	}
-	count := 0
-	fmt.Println(visit)
-	for _, beacon := range visit[10+shifty] {
-		if !beacon {
-			count++
-		}
-	}
-	fmt.Println(count)
+	fmt.Println(target)
 }
