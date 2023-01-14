@@ -1,4 +1,5 @@
 // Part 2 could be further optimised by taking into account which sensors touch at manhattan distance + 1
+// But the main trick was recognising traversing the circumference as a way to reduce the search space.
 package main
 
 import (
