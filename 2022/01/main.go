@@ -3,8 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strconv"
+
+	"mvinkio.online/aoc/aoc"
 )
 
 func biggestElf(data []int) []int {
@@ -44,13 +45,9 @@ func sum(array []int) int {
 	return s
 }
 
-// Should've kept part1 solution like in day3...
+// Boilerplate
 func main() {
-	f, err := os.Open("day1.txt")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer f.Close()
+	s := aoc.NewScannerFromFile("2022/01/input.txt")
 
 	data := make([]int, 0)
 	scanner := bufio.NewScanner(f)
