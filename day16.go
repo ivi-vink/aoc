@@ -27,6 +27,18 @@ func readValves(f io.Reader) map[string]Valve {
 	return nil
 }
 
+type indexer interface {
+    Index() int
+}
+
+type proto struct {
+    i int
+}
+
+func (p proto) Index() int {
+    return p.i
+}
+
 /*
 AA,0 ===================
 ||.............\\      \\
@@ -48,4 +60,11 @@ func main() {
 	}
 	valves := readValves(fh)
 	fmt.Println(valves)
+
+    p := proto{}
+    ps := []proto{p}
+    ps[0].i = 100
+    fmt.Println(ps)
+    ps[0].i = 314
+    fmt.Println(ps)
 }
