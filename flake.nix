@@ -14,6 +14,7 @@
       devShells.default = pkgs.mkShell {
         nativeBuildInputs = [pkgs.bashInteractive];
         buildInputs = with pkgs; [
+          delve
           go_1_19
           ginkgo
           gotests

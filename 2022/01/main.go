@@ -1,65 +1,39 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
+	"context"
 	"strconv"
 
 	"mvinkio.online/aoc/aoc"
 )
 
-func biggestElf(data []int) []int {
-	topThree := make([]int, 3)
-	push := func(i int, a int) {
-		tmp := topThree[i]
-		topThree[i] = a
-		carry := tmp
-		for i++; i < len(topThree); i++ {
-			tmp = topThree[i]
-			topThree[i] = carry
-			carry = tmp
-		}
+func readCaloriesInts(line string) (int, error) {
+	if len(line) == 0 {
+		return -1, nil
 	}
-	Elf := 0
-	for i := 0; i < len(data); i++ {
-		if data[i] < 0 {
-			for j := 0; j < len(topThree); j++ {
-				if topThree[j] < Elf {
-					push(j, Elf)
-					break
-				}
-			}
-			Elf = 0
-			continue
-		}
-		Elf = Elf + data[i]
+	if i, err := strconv.Atoi(line); err != nil {
+		return 0, err
+	} else {
+		return i, nil
 	}
-	return topThree
 }
 
-func sum(array []int) int {
-	s := 0
-	for _, val := range array {
-		s += val
-	}
-	return s
+func PartOne(ctx context.Context, data []int) ([]int, error) {
+	return biggestElf(data), nil
+}
+
+func PartTwo(ctx context.Context, data []int) ([]int, error) {
+	return []int{sum(biggestElf(data))}, nil
 }
 
 // Boilerplate
-func main() {
-	s := aoc.NewScannerFromFile("2022/01/input.txt")
 
-	data := make([]int, 0)
-	scanner := bufio.NewScanner(f)
-	var line string
-	for scanner.Scan() {
-		line = scanner.Text()
-		if len(line) == 0 {
-			data = append(data, -1)
-		} else if num, err := strconv.Atoi(line); err == nil {
-			data = append(data, num)
-		}
-	}
-	fmt.Println(biggestElf(data))
-	fmt.Println(sum(biggestElf(data)))
+func main() {
+	aoc.RunDay(
+		context.TODO(),
+		aoc.NewScanCloser("2022/01/input.txt"),
+		aoc.ReadByLine(readCaloriesInts),
+		PartOne,
+		PartTwo,
+	)
 }
