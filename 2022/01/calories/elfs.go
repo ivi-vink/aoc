@@ -1,4 +1,35 @@
-package main
+package calories
+
+import (
+	"context"
+	"strconv"
+)
+
+type solver func(ctx context.Context, data []int) ([]int, error)
+
+var (
+	Reader  = readCaloriesInts
+	Solvers = []solver{partOne, partTwo}
+)
+
+func partOne(ctx context.Context, data []int) ([]int, error) {
+	return biggestElf(data), nil
+}
+
+func partTwo(ctx context.Context, data []int) ([]int, error) {
+	return []int{sum(biggestElf(data))}, nil
+}
+
+func readCaloriesInts(line string) (int, error) {
+	if len(line) == 0 {
+		return -1, nil
+	}
+	if i, err := strconv.Atoi(line); err != nil {
+		return 0, err
+	} else {
+		return i, nil
+	}
+}
 
 func biggestElf(data []int) []int {
 	topThree := make([]int, 3)
