@@ -5,11 +5,11 @@ import (
 	"strconv"
 )
 
-type solver func(ctx context.Context, data []int) ([]int, error)
-
 var (
 	Reader  = readCaloriesInts
-	Solvers = []solver{partOne, partTwo}
+	Solvers = []func(ctx context.Context, data []int) ([]int, error){
+		partOne, partTwo,
+	}
 )
 
 func partOne(ctx context.Context, data []int) ([]int, error) {

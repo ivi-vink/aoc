@@ -25,9 +25,9 @@ func NewScanCloser(file string) *ScanCloser {
 	}
 }
 
-type Solver[T any, R any] func(ctx context.Context, data T) (R, error)
+type Solvers[T any, R any] []func(ctx context.Context, data T) (R, error)
 
-func RunDay[T any, R any](ctx context.Context, s *ScanCloser, in Reader[T], solvers ...Solver[T, R]) error {
+func RunDay[T any, R any](ctx context.Context, s *ScanCloser, in Reader[T], solvers Solvers[T, R]) error {
 	defer s.Closer.Close()
 
 	data, err := in(ctx, s.Scanner)

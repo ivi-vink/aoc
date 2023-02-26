@@ -14,6 +14,6 @@ func main() {
 		context.TODO(),
 		aoc.NewScanCloser("2022/01/input.txt"),
 		aoc.ReadByLine(calories.Reader),
-		calories.Solvers...,
+		calories.Solvers,
 	)
 }
