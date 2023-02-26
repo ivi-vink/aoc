@@ -54,12 +54,12 @@ func partTwo(ctx context.Context, data any) (any, error) {
 	return nil, nil
 }
 
-func read{{ .Name | Title }}(line []string) (any, error) {
+func read{{ .Name | Title }}(lines []string) (any, error) {
     return nil, nil
 }
 `
 
-var testTmpl string = `package {{ .Name }}_test
+var testTmpl string = `package {{ .Name }}
 
 import (
 	. "github.com/onsi/ginkgo/v2"

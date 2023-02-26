@@ -1,8 +1,15 @@
-package jankenpon_test
+package jankenpon
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"mvinkio.online/aoc/aoc"
+)
+
+var (
+	data    = aoc.ReadLines(readJankenpon)
+	answer1 = 15
+	answer2 = 12
 )
 
 var _ = Describe("jankenpon", func() {

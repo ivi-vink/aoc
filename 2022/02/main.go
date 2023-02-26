@@ -14,6 +14,6 @@ func main() {
 		context.TODO(),
 		aoc.NewScanCloser("2022/02/input.txt"),
 		aoc.ReadLines(jankenpon.Reader),
-        jankenpon.Solvers,
+		jankenpon.Solvers,
 	)
 }
